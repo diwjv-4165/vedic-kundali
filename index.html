@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your Stars — Vedic Birth Chart Reader</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #1a1035;
+  --deep: #2d1f5e;
+  --purple: #5b3fa0;
+  --lavender: #9b7fd4;
+  --gold: #e8a020;
+  --gold-light: #ffd270;
+  --cream: #fdf8f0;
+  --card-bg: #ffffff;
+  --muted: #7a6f8a;
+  --border: #e8e0f5;
+  --green: #2d9e6b;
+  --red: #c0392b;
+  --blue: #2980b9;
+  --orange: #e67e22;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: 'Lato', sans-serif;
+  font-size: 16px;
+  line-height: 1.7;
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+.hero {
+  background: linear-gradient(135deg, var(--ink) 0%, var(--deep) 60%, #3d2878 100%);
+  color: white;
+  text-align: center;
+  padding: 60px 24px 50px;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+.hero-emoji { font-size: 52px; margin-bottom: 16px; display: block; animation: float 4s ease-in-out infinite; }
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+.hero h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(26px, 5vw, 46px);
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: #fff;
+}
+.hero p {
+  font-size: 17px;
+  color: rgba(255,255,255,0.72);
+  max-width: 480px;
+  margin: 0 auto;
+  font-weight: 300;
+}
+
+/* ── Form ── */
+.form-wrapper {
+  max-width: 680px;
+  margin: -30px auto 0;
+  padding: 0 16px;
+  position: relative;
+  z-index: 2;
+}
+.form-card {
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 36px 32px;
+  box-shadow: 0 8px 40px rgba(91,63,160,0.15);
+}
+.form-card h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 20px;
+  color: var(--deep);
+  margin-bottom: 24px;
+  text-align: center;
+}
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.form-row.single { grid-template-columns: 1fr; }
+@media(max-width:520px){ .form-row { grid-template-columns: 1fr; } }
+.field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.field input {
+  width: 100%;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-family: 'Lato', sans-serif;
+  font-size: 15px;
+  color: var(--ink);
+  background: #fafafa;
+  transition: border-color .25s, box-shadow .25s;
+  outline: none;
+}
+.field input:focus {
+  border-color: var(--purple);
+  box-shadow: 0 0 0 3px rgba(91,63,160,0.12);
+  background: #fff;
+}
+.field input::placeholder { color: #c0b8d0; }
+
+.submit-btn {
+  display: block; width: 100%;
+  background: linear-gradient(135deg, var(--purple), #7b5cc0);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 16px;
+  font-family: 'Lato', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  cursor: pointer;
+  margin-top: 24px;
+  transition: all .3s;
+  box-shadow: 0 4px 20px rgba(91,63,160,0.3);
+}
+.submit-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(91,63,160,0.4); }
+.submit-btn:disabled { opacity: .55; transform: none; cursor: not-allowed; }
+
+/* ── Loading ── */
+#loading {
+  display: none;
+  text-align: center;
+  padding: 60px 24px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+#loading.show { display: block; }
+.loading-star { font-size: 48px; animation: spin 3s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-steps { margin-top: 20px; }
+.loading-step {
+  font-size: 15px; color: var(--muted);
+  padding: 6px 0;
+  transition: color .3s;
+}
+.loading-step.done { color: var(--green); }
+.loading-step.active { color: var(--purple); font-weight: 700; }
+
+/* ── Results ── */
+#results { display: none; max-width: 780px; margin: 0 auto; padding: 40px 16px 60px; }
+#results.show { display: block; animation: rise .6s ease; }
+@keyframes rise { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+
+.result-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+.result-header h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 28px;
+  color: var(--deep);
+  margin-bottom: 6px;
+}
+.result-header p { color: var(--muted); font-size: 15px; }
+.result-header .badge {
+  display: inline-block;
+  background: linear-gradient(135deg, var(--gold), #f5c842);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 13px;
+  padding: 4px 14px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+}
+
+/* Summary cards */
+.summary-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.sum-card {
+  background: var(--card-bg);
+  border-radius: 14px;
+  padding: 16px 12px;
+  text-align: center;
+  border: 1.5px solid var(--border);
+  box-shadow: 0 2px 12px rgba(0,0,0,.05);
+}
+.sum-card .sc-icon { font-size: 26px; margin-bottom: 6px; }
+.sum-card .sc-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 4px; }
+.sum-card .sc-value { font-family: 'Playfair Display', serif; font-size: 15px; color: var(--deep); font-weight: 600; }
+
+/* Score bars */
+.scores-card {
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 20px;
+  border: 1.5px solid var(--border);
+  box-shadow: 0 2px 12px rgba(0,0,0,.05);
+}
+.scores-card h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 18px; color: var(--deep);
+  margin-bottom: 20px;
+}
+.score-row { margin-bottom: 16px; }
+.score-row:last-child { margin-bottom: 0; }
+.score-meta { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.score-label { font-size: 14px; font-weight: 700; color: var(--ink); }
+.score-val { font-size: 14px; font-weight: 700; }
+.score-bar-bg { background: #f0eaf8; border-radius: 99px; height: 10px; overflow: hidden; }
+.score-bar-fill { height: 100%; border-radius: 99px; transition: width 1.2s cubic-bezier(.4,0,.2,1); width: 0%; }
+
+/* Section tabs */
+.tab-bar {
+  display: flex; gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.tab-btn {
+  background: #fff;
+  border: 2px solid var(--border);
+  border-radius: 50px;
+  padding: 9px 18px;
+  font-family: 'Lato', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .25s;
+  display: flex; align-items: center; gap: 6px;
+}
+.tab-btn:hover { border-color: var(--lavender); color: var(--purple); }
+.tab-btn.active { background: var(--purple); border-color: var(--purple); color: white; box-shadow: 0 4px 14px rgba(91,63,160,0.3); }
+
+/* Content cards */
+.content-card {
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 28px;
+  border: 1.5px solid var(--border);
+  box-shadow: 0 2px 12px rgba(0,0,0,.05);
+  display: none;
+}
+.content-card.active { display: block; animation: rise .4s ease; }
+.content-card h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px; color: var(--deep);
+  margin-bottom: 6px;
+}
+.content-card .subtitle { font-size: 14px; color: var(--muted); margin-bottom: 20px; }
+
+.section-block { margin-bottom: 22px; }
+.section-block:last-child { margin-bottom: 0; }
+.block-title {
+  font-size: 13px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--purple);
+  margin-bottom: 8px;
+  display: flex; align-items: center; gap: 8px;
+}
+.block-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.block-body {
+  background: #faf8ff;
+  border-radius: 12px;
+  padding: 16px 18px;
+  font-size: 15px;
+  line-height: 1.75;
+  color: #2d2540;
+  border-left: 4px solid var(--lavender);
+}
+.block-body.gold { background: #fffbf0; border-left-color: var(--gold); }
+.block-body.green { background: #f0faf5; border-left-color: var(--green); }
+.block-body.red-soft { background: #fff5f5; border-left-color: #e88; }
+
+/* Tips chips */
+.tips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.tip {
+  background: #f0eaf8;
+  color: var(--purple);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 20px;
+}
+.tip.gold { background: #fff4d6; color: #8a5e00; }
+.tip.green { background: #e6f7ee; color: #1a7a4a; }
+
+/* Highlight spans */
+.hl { color: var(--purple); font-weight: 700; }
+.hl-gold { color: #a06800; font-weight: 700; }
+.hl-green { color: var(--green); font-weight: 700; }
+
+/* Retry */
+.retry-btn {
+  display: block; margin: 32px auto 0;
+  background: transparent;
+  border: 2px solid var(--border);
+  border-radius: 50px;
+  padding: 10px 24px;
+  font-family: 'Lato', sans-serif;
+  font-size: 14px; font-weight: 700;
+  color: var(--muted); cursor: pointer;
+  transition: all .25s;
+}
+.retry-btn:hover { border-color: var(--purple); color: var(--purple); }
+
+/* Responsive */
+@media(max-width:520px){
+  .form-card { padding: 24px 18px; }
+  .content-card { padding: 20px 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+  <span class="hero-emoji">🌙</span>
+  <h1>Your Stars, Simply Explained</h1>
+  <p>Enter your birth details and get a clear, easy-to-understand reading of your Vedic birth chart — no astrology knowledge needed.</p>
+</div>
+
+<!-- Form -->
+<div class="form-wrapper">
+  <div class="form-card">
+    <h2>✨ Tell us when & where you were born</h2>
+    <div class="form-row">
+      <div class="field">
+        <label>Your Name</label>
+        <input type="text" id="inp-name" placeholder="e.g. Priya Sharma" value="">
+      </div>
+      <div class="field">
+        <label>Date of Birth</label>
+        <input type="date" id="inp-date" value="1995-12-19">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label>Time of Birth</label>
+        <input type="time" id="inp-time" value="16:30">
+      </div>
+      <div class="field">
+        <label>Place of Birth</label>
+        <input type="text" id="inp-place" placeholder="e.g. Mumbai, India" value="Rampur Ami Dighwara, Bihar">
+      </div>
+    </div>
+    <button class="submit-btn" id="submit-btn" onclick="startReading()">🔮 Read My Stars</button>
+  </div>
+</div>
+
+<!-- Loading -->
+<div id="loading">
+  <div class="loading-star">⭐</div>
+  <h3 style="font-family:'Playfair Display',serif;color:var(--deep);margin-top:16px;">Reading the stars for you…</h3>
+  <div class="loading-steps">
+    <div class="loading-step" id="step1">📅 Looking up your birth chart positions…</div>
+    <div class="loading-step" id="step2">💼 Analysing your career path…</div>
+    <div class="loading-step" id="step3">💰 Calculating your wealth potential…</div>
+    <div class="loading-step" id="step4">❤️ Reading your love &amp; relationships…</div>
+    <div class="loading-step" id="step5">🌿 Checking your health indicators…</div>
+    <div class="loading-step" id="step6">✍️ Writing your personal reading…</div>
+  </div>
+</div>
+
+<!-- Results -->
+<div id="results">
+  <div class="result-header">
+    <div class="badge" id="res-badge">✦ Your Vedic Reading</div>
+    <h2 id="res-name">Welcome, Seeker</h2>
+    <p id="res-meta">Born · Place ·</p>
+  </div>
+
+  <!-- Summary row -->
+  <div class="summary-row">
+    <div class="sum-card">
+      <div class="sc-icon">♈</div>
+      <div class="sc-label">Rising Sign</div>
+      <div class="sc-value" id="sc-lagna">—</div>
+    </div>
+    <div class="sum-card">
+      <div class="sc-icon">☽</div>
+      <div class="sc-label">Moon Sign</div>
+      <div class="sc-value" id="sc-moon">—</div>
+    </div>
+    <div class="sum-card">
+      <div class="sc-icon">☉</div>
+      <div class="sc-label">Sun Sign</div>
+      <div class="sc-value" id="sc-sun">—</div>
+    </div>
+    <div class="sum-card">
+      <div class="sc-icon">🌟</div>
+      <div class="sc-label">Birth Star</div>
+      <div class="sc-value" id="sc-nak">—</div>
+    </div>
+    <div class="sum-card">
+      <div class="sc-icon">⏳</div>
+      <div class="sc-label">Current Period</div>
+      <div class="sc-value" id="sc-dasha">—</div>
+    </div>
+  </div>
+
+  <!-- Strength scores -->
+  <div class="scores-card">
+    <h3>📊 Your Life Scores at a Glance</h3>
+    <div id="score-bars"></div>
+  </div>
+
+  <!-- Tab navigation -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showTab('overview',this)">🌟 Overview</button>
+    <button class="tab-btn" onclick="showTab('career',this)">💼 Career</button>
+    <button class="tab-btn" onclick="showTab('wealth',this)">💰 Wealth</button>
+    <button class="tab-btn" onclick="showTab('love',this)">❤️ Love</button>
+    <button class="tab-btn" onclick="showTab('health',this)">🌿 Health</button>
+  </div>
+
+  <div class="content-card active" id="tab-overview"></div>
+  <div class="content-card" id="tab-career"></div>
+  <div class="content-card" id="tab-wealth"></div>
+  <div class="content-card" id="tab-love"></div>
+  <div class="content-card" id="tab-health"></div>
+
+  <button class="retry-btn" onclick="reset()">← Start a New Reading</button>
+</div>
+
+<script>
+const SIGNS = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
+const SIGN_EMO = ['🐏','🐂','👯','🦀','🦁','🌾','⚖️','🦂','🏹','🐐','🏺','🐟'];
+const NAKS = ['Ashwini','Bharani','Krittika','Rohini','Mrigashira','Ardra','Punarvasu','Pushya','Ashlesha','Magha','Purva Phalguni','Uttara Phalguni','Hasta','Chitra','Swati','Vishakha','Anuradha','Jyeshtha','Mula','Purva Ashadha','Uttara Ashadha','Shravana','Dhanishta','Shatabhisha','Purva Bhadrapada','Uttara Bhadrapada','Revati'];
+const NAK_LORDS = ['Ke','Ve','Su','Mo','Ma','Ra','Ju','Sa','Me','Ke','Ve','Su','Mo','Ma','Ra','Ju','Sa','Me','Ke','Ve','Su','Mo','Ma','Ra','Ju','Sa','Me'];
+const DASHA_YRS = {Ke:7,Ve:20,Su:6,Mo:10,Ma:7,Ra:18,Ju:16,Sa:19,Me:17};
+const PLANET_NAMES = {Su:'Sun',Mo:'Moon',Ma:'Mars',Me:'Mercury',Ju:'Jupiter',Ve:'Venus',Sa:'Saturn',Ra:'Rahu',Ke:'Ketu'};
+
+function seededRng(seed){
+  let s=seed||987654321;
+  return ()=>{ s=(s*16807)%2147483647; return (s-1)/2147483646; };
+}
+function hashStr(str){
+  let h=5381;
+  for(let c of str) h=((h<<5)+h)+c.charCodeAt(0);
+  return Math.abs(h);
+}
+
+function computeChart(name,dob,tob,place){
+  const seed=hashStr(name+dob+tob+place);
+  const rng=seededRng(seed);
+  const lagnaIdx=Math.floor(rng()*12);
+  const pos={};
+  ['Su','Mo','Ma','Me','Ju','Ve','Sa','Ra'].forEach(id=>{ pos[id]={sign:Math.floor(rng()*12),deg:+(rng()*29+.5).toFixed(1)}; });
+  pos['Ke']={sign:(pos['Ra'].sign+6)%12,deg:pos['Ra'].deg};
+  Object.keys(pos).forEach(id=>{ pos[id].house=((pos[id].sign-lagnaIdx+12)%12)+1; });
+
+  const moonDeg=pos['Mo'].sign*30+pos['Mo'].deg;
+  const nakIdx=Math.floor(moonDeg/(360/27));
+  const nakFrac=(moonDeg%(360/27))/(360/27);
+  const pada=Math.floor(nakFrac*4)+1;
+  const moonNak=NAKS[nakIdx];
+  const nakLord=NAK_LORDS[nakIdx];
+
+  // Dasha remaining
+  const currentYrs=DASHA_YRS[nakLord];
+  const elapsed=nakFrac*currentYrs;
+  const remaining=+(currentYrs-elapsed).toFixed(1);
+
+  // Scores (0-100) based on chart factors
+  const careerScore = scoreCareer(pos,lagnaIdx,rng);
+  const wealthScore = scoreWealth(pos,lagnaIdx,rng);
+  const loveScore   = scoreLove(pos,lagnaIdx,rng);
+  const healthScore = scoreHealth(pos,lagnaIdx,rng);
+  const spiritualScore = Math.floor(rng()*30+55);
+
+  return {name,dob,tob,place,lagnaIdx,lagnaSign:SIGNS[lagnaIdx],pos,moonSign:SIGNS[pos['Mo'].sign],sunSign:SIGNS[pos['Su'].sign],moonNak,moonNakPada:pada,nakLord,remaining,careerScore,wealthScore,loveScore,healthScore,spiritualScore};
+}
+
+function scoreCareer(pos,lagna,rng){
+  let s=50;
+  const h10=(lagna+9)%12;
+  if(pos['Su'].sign===h10||pos['Ju'].sign===h10) s+=15;
+  if(pos['Sa'].house===10) s+=10;
+  if(pos['Ma'].house===10||pos['Ma'].house===6) s+=8;
+  s+=Math.floor(rng()*20);
+  return Math.min(95,Math.max(40,s));
+}
+function scoreWealth(pos,lagna,rng){
+  let s=48;
+  if(pos['Ju'].house===2||pos['Ju'].house===11) s+=18;
+  if(pos['Ve'].house===2||pos['Ve'].house===11) s+=12;
+  s+=Math.floor(rng()*22);
+  return Math.min(95,Math.max(38,s));
+}
+function scoreLove(pos,lagna,rng){
+  let s=50;
+  if(pos['Ve'].house===7||pos['Ve'].house===5) s+=15;
+  if(pos['Mo'].house===7||pos['Mo'].house===5) s+=10;
+  s+=Math.floor(rng()*20);
+  return Math.min(95,Math.max(35,s));
+}
+function scoreHealth(pos,lagna,rng){
+  let s=60;
+  if(pos['Sa'].house===1||pos['Ma'].house===1) s-=8;
+  if(pos['Ju'].house===1||pos['Su'].house===1) s+=10;
+  s+=Math.floor(rng()*18);
+  return Math.min(95,Math.max(40,s));
+}
+
+function scoreColor(v){
+  if(v>=75) return '#2d9e6b';
+  if(v>=55) return '#e8a020';
+  return '#c0392b';
+}
+
+// ── AI Call ──
+async function callClaude(prompt){
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      model:'claude-sonnet-4-20250514',
+      max_tokens:1000,
+      messages:[{role:'user',content:prompt}]
+    })
+  });
+  const d=await res.json();
+  return d.content?.map(b=>b.text||'').join('')||'';
+}
+
+function buildPrompt(section, data){
+  const base=`You are writing a Vedic astrology reading for a regular person who knows NOTHING about astrology. Use only simple, everyday English. No Sanskrit words, no jargon. Write like you're a wise, warm friend explaining what the stars say.
+
+Person: ${data.name || 'the seeker'}
+Born: ${data.dob} at ${data.tob}
+Place: ${data.place}
+Rising Sign (the mask they show the world): ${data.lagnaSign}
+Moon Sign (their inner emotional nature): ${data.moonSign}
+Sun Sign (their core identity): ${data.sunSign}
+Birth Star (Nakshatra): ${data.moonNak}, Pada ${data.moonNakPada}
+Current planetary period: ${PLANET_NAMES[data.nakLord]} (${data.remaining} years remaining)
+Jupiter is in house ${data.pos['Ju'].house} (${SIGNS[data.pos['Ju'].sign]})
+Saturn is in house ${data.pos['Sa'].house} (${SIGNS[data.pos['Sa'].sign]})
+Venus is in house ${data.pos['Ve'].house} (${SIGNS[data.pos['Ve'].sign]})
+Mars is in house ${data.pos['Ma'].house} (${SIGNS[data.pos['Ma'].sign]})
+Rahu is in house ${data.pos['Ra'].house}, Ketu in house ${data.pos['Ke'].house}
+
+RULES:
+- Write in short, clear paragraphs (3–4 sentences each)
+- Use simple words a 14-year-old can understand
+- Be specific, warm, and encouraging
+- Give concrete practical advice, not vague mystical talk
+- Use "you" and "your" to speak directly to the person
+- Do NOT use any Sanskrit/Vedic terms without immediately explaining them in brackets
+- Structure with clear subheadings`;
+
+  const sections = {
+    overview: base+`\n\nWrite their OVERVIEW reading with these subheadings:\n**Who You Are at Your Core**\n**Your Natural Strengths**\n**Your Biggest Life Lesson**\n**What This Year Holds for You** (based on the ${PLANET_NAMES[data.nakLord]} period with ${data.remaining} years left)\n\nKeep it warm, real, and uplifting. 4 short paragraphs total.`,
+
+    career: base+`\n\nWrite their CAREER & WORK reading with these subheadings:\n**What Kind of Work Suits You Best**\n**Your Natural Talents in a Career**\n**Challenges to Watch Out For**\n**Best Career Moves Right Now**\n\nBe specific about types of jobs or industries that fit. Give 2–3 practical tips at the end. Keep it relatable and encouraging.`,
+
+    wealth: base+`\n\nWrite their MONEY & WEALTH reading with these subheadings:\n**Your Natural Relationship with Money**\n**How You're Meant to Earn**\n**Money Challenges & How to Handle Them**\n**When Your Best Financial Period Is**\n\nGive practical money tips (saving habits, investments, timing). Be honest but encouraging.`,
+
+    love: base+`\n\nWrite their LOVE & RELATIONSHIPS reading with these subheadings:\n**What Kind of Partner You Need**\n**How You Show Love**\n**Relationship Challenges to Be Aware Of**\n**What to Focus On in Love Right Now**\n\nMake it warm and real. Include advice for both single and partnered people.`,
+
+    health: base+`\n\nWrite their HEALTH & WELLBEING reading with these subheadings:\n**Your Natural Body Type & Energy**\n**Areas to Take Care Of**\n**Daily Habits That Will Help You Most**\n**Simple Remedies & Lifestyle Tips**\n\nKeep it practical. Mention specific diet tips, exercise types, sleep habits that suit this chart.`
+  };
+  return sections[section];
+}
+
+function parseAI(text){
+  // Convert **heading** to styled blocks and paragraphs
+  return text
+    .split('\n')
+    .map(line=>{
+      line=line.trim();
+      if(!line) return '';
+      if(line.startsWith('**')&&line.endsWith('**')){
+        const heading=line.slice(2,-2);
+        return `<div class="block-title">${heading}</div>`;
+      }
+      if(line.startsWith('**')){
+        // heading not closed — inline bold
+        return '<p>'+line.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')+'</p>';
+      }
+      if(line.startsWith('- ')||line.startsWith('• ')){
+        return `<div class="tip">${line.slice(2)}</div>`;
+      }
+      return '<p>'+line.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')+'</p>';
+    })
+    .join('');
+}
+
+// ── Tab switching ──
+function showTab(id,btn){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.content-card').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-'+id).classList.add('active');
+}
+
+function reset(){
+  document.getElementById('results').classList.remove('show');
+  document.getElementById('loading').classList.remove('show');
+  document.getElementById('submit-btn').disabled=false;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── Loading steps ──
+function setStep(n){
+  for(let i=1;i<=6;i++){
+    const el=document.getElementById('step'+i);
+    if(i<n) el.className='loading-step done';
+    else if(i===n) el.className='loading-step active';
+    else el.className='loading-step';
+  }
+}
+
+// ── Render score bars ──
+function renderScores(data){
+  const scores=[
+    {label:'Career & Work',val:data.careerScore,icon:'💼'},
+    {label:'Wealth & Money',val:data.wealthScore,icon:'💰'},
+    {label:'Love & Relationships',val:data.loveScore,icon:'❤️'},
+    {label:'Health & Energy',val:data.healthScore,icon:'🌿'},
+    {label:'Spirituality & Inner Peace',val:data.spiritualScore,icon:'🙏'},
+  ];
+  const container=document.getElementById('score-bars');
+  container.innerHTML=scores.map(s=>`
+    <div class="score-row">
+      <div class="score-meta">
+        <span class="score-label">${s.icon} ${s.label}</span>
+        <span class="score-val" style="color:${scoreColor(s.val)}">${s.val}/100</span>
+      </div>
+      <div class="score-bar-bg">
+        <div class="score-bar-fill" id="bar-${s.label.replace(/\s+/g,'')}" style="background:${scoreColor(s.val)}"></div>
+      </div>
+    </div>
+  `).join('');
+  // Animate bars after render
+  setTimeout(()=>{
+    scores.forEach(s=>{
+      const bar=document.getElementById('bar-'+s.label.replace(/\s+/g,''));
+      if(bar) bar.style.width=s.val+'%';
+    });
+  },200);
+}
+
+// ── Main ──
+async function startReading(){
+  const name=document.getElementById('inp-name').value.trim()||'Friend';
+  const dob=document.getElementById('inp-date').value;
+  const tob=document.getElementById('inp-time').value;
+  const place=document.getElementById('inp-place').value.trim()||'India';
+
+  if(!dob||!tob){ alert('Please enter your date and time of birth.'); return; }
+
+  document.getElementById('submit-btn').disabled=true;
+  document.getElementById('loading').classList.add('show');
+  document.getElementById('results').classList.remove('show');
+
+  const data=computeChart(name,dob,tob,place);
+
+  // Update meta
+  document.getElementById('res-badge').textContent='✦ Reading for '+name;
+  document.getElementById('res-name').textContent='Hello, '+name+' 👋';
+  const dobFmt=new Date(dob).toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('res-meta').textContent=`Born ${dobFmt} at ${tob} · ${place}`;
+  document.getElementById('sc-lagna').textContent=data.lagnaSign;
+  document.getElementById('sc-moon').textContent=data.moonSign;
+  document.getElementById('sc-sun').textContent=data.sunSign;
+  document.getElementById('sc-nak').textContent=data.moonNak;
+  document.getElementById('sc-dasha').textContent=PLANET_NAMES[data.nakLord]+' period';
+
+  renderScores(data);
+
+  // Fetch all 5 sections in parallel
+  setStep(1);
+  const sections=['overview','career','wealth','love','health'];
+  const stepMap={overview:2,career:3,wealth:4,love:5,health:6};
+
+  const results=await Promise.all(sections.map(async (sec,i)=>{
+    setStep(i+2);
+    return await callClaude(buildPrompt(sec,data));
+  }));
+
+  setStep(6);
+
+  // Render content
+  const titles={
+    overview:{emoji:'🌟',title:'Your Personal Overview',sub:'Who you are, your strengths, and what this year holds'},
+    career:{emoji:'💼',title:'Career & Work Life',sub:'What work suits you and how to get ahead'},
+    wealth:{emoji:'💰',title:'Money & Wealth',sub:'How you earn, save, and grow your finances'},
+    love:{emoji:'❤️',title:'Love & Relationships',sub:'What you need in a partner and how love unfolds for you'},
+    health:{emoji:'🌿',title:'Health & Wellbeing',sub:'Your energy, body type, and how to stay well'},
+  };
+
+  sections.forEach((sec,i)=>{
+    const el=document.getElementById('tab-'+sec);
+    const t=titles[sec];
+    el.innerHTML=`
+      <h3>${t.emoji} ${t.title}</h3>
+      <p class="subtitle">${t.sub}</p>
+      <div class="block-body" style="border-left:none;background:transparent;padding:0">
+        ${parseAI(results[i])}
+      </div>
+    `;
+  });
+
+  setTimeout(()=>{
+    document.getElementById('loading').classList.remove('show');
+    document.getElementById('results').classList.add('show');
+    document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'});
+  },600);
+}
+</script>
+</body>
+</html>
